@@ -19,31 +19,36 @@ describe('encrypt', function() {
     name: 'aes-256-cbc',
     encryptionOptions: {
       encryptionAlgorithm: 'http://www.w3.org/2001/04/xmlenc#aes256-cbc',
-      keyEncryptionAlgorithm: 'http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p'
+      keyEncryptionAlgorithm: 'http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p',
+      digestAlgorithm: 'http://www.w3.org/2000/09/xmldsig#sha1'
     }
   }, {
     name: 'aes-128-cbc',
     encryptionOptions: {
       encryptionAlgorithm: 'http://www.w3.org/2001/04/xmlenc#aes128-cbc',
-      keyEncryptionAlgorithm: 'http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p'
+      keyEncryptionAlgorithm: 'http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p',
+      digestAlgorithm: 'http://www.w3.org/2000/09/xmldsig#sha1'
     }
   }, {
     name: 'aes-256-gcm',
     encryptionOptions: {
       encryptionAlgorithm: 'http://www.w3.org/2009/xmlenc11#aes256-gcm',
-      keyEncryptionAlgorithm: 'http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p'
+      keyEncryptionAlgorithm: 'http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p',
+      digestAlgorithm: 'http://www.w3.org/2000/09/xmldsig#sha1'
     }
   }, {
     name: 'aes-128-gcm',
     encryptionOptions: {
       encryptionAlgorithm: 'http://www.w3.org/2009/xmlenc11#aes128-gcm',
-      keyEncryptionAlgorithm: 'http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p'
+      keyEncryptionAlgorithm: 'http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p',
+      digestAlgorithm: 'http://www.w3.org/2000/09/xmldsig#sha1'
     }
   }, {
     name: 'des-ede3-cbc',
     encryptionOptions: {
       encryptionAlgorithm: 'http://www.w3.org/2001/04/xmlenc#tripledes-cbc',
-      keyEncryptionAlgorithm: 'http://www.w3.org/2001/04/xmlenc#rsa-1_5'
+      keyEncryptionAlgorithm: 'http://www.w3.org/2001/04/xmlenc#rsa-1_5',
+      digestAlgorithm: 'http://www.w3.org/2000/09/xmldsig#sha1'
     }
   }];
 
@@ -55,7 +60,11 @@ describe('encrypt', function() {
 
       it('should encrypt and decrypt xml without x509 certificate', function (done) {
         _shouldEncryptAndDecryptNoX509('content to encrypt', algorithm.encryptionOptions, done);
-      })
+      });
+      
+      it('should encrypt and decrypt xml without digestAlgorithm', function (done) {
+        _shouldEncryptAndDecryptNoDigest('content to encrypt', algorithm.encryptionOptions, done);
+      });
 
       it('should encrypt and decrypt xml with utf8 chars', function (done) {
         _shouldEncryptAndDecrypt('Gnügge Gnügge Gnügge Gnügge Gnügge Gnügge Gnügge Gnügge Gnügge Gnügge', algorithm.encryptionOptions, done);
@@ -77,6 +86,26 @@ describe('encrypt', function() {
     options.pem = fs.readFileSync(__dirname + '/test-auth0.pem'),
     options.key = fs.readFileSync(__dirname + '/test-auth0.key'),
     options.warnInsecureAlgorithm = false;
+
+    xmlenc.encrypt(content, options, function(err, result) {
+      xmlenc.decrypt(result, { key: fs.readFileSync(__dirname + '/test-auth0.key'), warnInsecureAlgorithm: false}, function (err, decrypted) {
+        assert.equal(decrypted, content);
+        done();
+      });
+    });
+  }
+  
+  function _shouldEncryptAndDecryptNoDigest(content, options, done) {
+    // cert created with:
+    // openssl req -x509 -new -newkey rsa:2048 -nodes -subj '/CN=auth0.auth0.com/O=Auth0 LLC/C=US/ST=Washington/L=Redmond' -keyout auth0.key -out auth0.pem
+    // pub key extracted from (only the RSA public key between BEGIN PUBLIC KEY and END PUBLIC KEY)
+    // openssl x509 -in "test-auth0.pem" -pubkey
+
+    options.rsa_pub = fs.readFileSync(__dirname + '/test-auth0_rsa.pub'),
+    options.pem = fs.readFileSync(__dirname + '/test-auth0.pem'),
+    options.key = fs.readFileSync(__dirname + '/test-auth0.key'),
+    options.warnInsecureAlgorithm = false;
+    delete options.digestAlgorithm;
 
     xmlenc.encrypt(content, options, function(err, result) {
       xmlenc.decrypt(result, { key: fs.readFileSync(__dirname + '/test-auth0.key'), warnInsecureAlgorithm: false}, function (err, decrypted) {
