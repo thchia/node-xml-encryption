@@ -53,8 +53,16 @@ describe('encrypt', function() {
         _shouldEncryptAndDecrypt('content to encrypt', algorithm.encryptionOptions, done);
       });
 
+      it('should encrypt and decrypt xml without x509 certificate', function (done) {
+        _shouldEncryptAndDecryptNoX509('content to encrypt', algorithm.encryptionOptions, done);
+      })
+
       it('should encrypt and decrypt xml with utf8 chars', function (done) {
         _shouldEncryptAndDecrypt('Gnügge Gnügge Gnügge Gnügge Gnügge Gnügge Gnügge Gnügge Gnügge Gnügge', algorithm.encryptionOptions, done);
+      });
+
+      it('should encrypt and decrypt xml with utf8 chars when no x509 cert present', function (done) {
+        _shouldEncryptAndDecryptNoX509('Gnügge Gnügge Gnügge Gnügge Gnügge Gnügge Gnügge Gnügge Gnügge Gnügge', algorithm.encryptionOptions, done);
       });
     });
   });
@@ -72,6 +80,18 @@ describe('encrypt', function() {
 
     xmlenc.encrypt(content, options, function(err, result) {
       xmlenc.decrypt(result, { key: fs.readFileSync(__dirname + '/test-auth0.key'), warnInsecureAlgorithm: false}, function (err, decrypted) {
+        assert.equal(decrypted, content);
+        done();
+      });
+    });
+  }
+
+  function _shouldEncryptAndDecryptNoX509(content, options, done) {
+    options.rsa_pub = fs.readFileSync(__dirname + '/test-auth0_rsa.pub'),
+    options.key = fs.readFileSync(__dirname + '/test-auth0.key'),
+
+    xmlenc.encrypt(content, options, function(err, result) {
+      xmlenc.decrypt(result, { key: fs.readFileSync(__dirname + '/test-auth0.key')}, function (err, decrypted) {
         assert.equal(decrypted, content);
         done();
       });
